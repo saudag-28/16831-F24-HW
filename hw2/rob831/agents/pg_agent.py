@@ -47,7 +47,10 @@ class PGAgent(BaseAgent):
         # HINT2: look at the MLPPolicyPG class for how to update the policy
             # and obtain a train_log
 
-        raise NotImplementedError
+        # raise NotImplementedError
+        q_values = self.calculate_q_vals(rewards_list)
+        advantages = self.estimate_advantage(observations, rewards_list, q_values, terminals)
+        train_log = self.actor.update(observations, actions, advantages, q_values)
 
         return train_log
 
@@ -75,12 +78,14 @@ class PGAgent(BaseAgent):
 
         if not self.reward_to_go:
             #use the whole traj for each timestep
-            raise NotImplementedError
+            # raise NotImplementedError
+            q_values = np.concatenate([self._discounted_return(reward_list) for reward_list in rewards_list])
 
         # Case 2: reward-to-go PG
         # Estimate Q^{pi}(s_t, a_t) by the discounted sum of rewards starting from t
         else:
-            raise NotImplementedError
+            # raise NotImplementedError
+            q_values = np.concatenate([self._discounted_cumsum(reward_list) for reward_list in rewards_list])
 
         return q_values  # return an array
 
@@ -172,7 +177,17 @@ class PGAgent(BaseAgent):
         """
 
         # TODO: create discounted_returns
-        raise NotImplementedError
+        # raise NotImplementedError
+        T = len(rewards)
+        total_discounted_return = 0
+        discount = 1  # Initialize the discount factor for gamma^0 = 1
+        
+        for t_prime in range(T):
+            total_discounted_return += discount * rewards[t_prime]
+            discount *= self.gamma  # Increase the discount factor for the next reward
+        
+        # Create an array where each element is the same total discounted return
+        discounted_returns = [total_discounted_return] * T
 
         return discounted_returns
 
@@ -186,6 +201,13 @@ class PGAgent(BaseAgent):
         # TODO: create `discounted_cumsums`
         # HINT: it is possible to write a vectorized solution, but a solution
             # using a for loop is also fine
-        raise NotImplementedError
+        # raise NotImplementedError
+        rewards = np.array(rewards)
+        T = len(rewards)
+
+        discounts_t = np.power(self.gamma, np.arange(T))
+        discounted_rewards = rewards * discounts_t
+        discounted_cumsums = np.flip(np.cumsum(np.flip(discounted_rewards)))
+        discounted_cumsums /= discounts
 
         return discounted_cumsums
